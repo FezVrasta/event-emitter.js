@@ -6,7 +6,7 @@ class EventEmitter {
      * Constructor
      */
     constructor() {
-        this._events = {};
+        this._events = new Map();
 
         // Aliases
         this.on = this.addEventListener;
@@ -17,29 +17,14 @@ class EventEmitter {
      * Emit a new event
      *
      * @param {String} type
-     * @param {...} arguments
+     * @param {...} args
      */
-    emit(name) {
-        if (!this._events.hasOwnProperty(name)) {
+    emit(name, ...args) {
+        if (!this._events.has(name)) {
             return;
         }
 
-        const callbacks = this._events[name];
-        const args = Array.prototype.slice.call(arguments, 1);
-
-        for (let length = callbacks.length, i = 0; i < length; i++) {
-            this.handle(callbacks[i], args);
-        }
-    }
-
-    /**
-     * Call the given callback
-     *
-     * @param {Function} callback
-     * @param {Array} args
-     */
-    handle(callback, args = []) {
-        callback(...args);
+        this._events.get(name).forEach(callback => callback(...args));
     }
 
     /**
@@ -49,12 +34,10 @@ class EventEmitter {
      * @param {Function} callback
      */
     addEventListener(name, callback) {
-        if (!this._events.hasOwnProperty(name)) {
-            this._events[name] = [];
-        }
-
-        if (this._events[name].indexOf(callback) < 0) {
-            this._events[name].push(callback);
+        if (!this._events.has(name)) {
+            this._events.set(name, new Set([callback]));
+        } else {
+            this._events.get(name).add(callback);
         }
     }
 
@@ -65,19 +48,16 @@ class EventEmitter {
      * @param {Function} callback
      */
     removeEventListener(name, callback) {
-        if (!this._events.hasOwnProperty(name)) {
+        if (!this._events.has(name)) {
             return;
         }
 
-        const callbacks = this._events[name];
-        const index = callbacks.indexOf(callback);
+        const callbacks = this._events.get(name);
 
-        if (index >= 0) {
-            callbacks.splice(index, 1);
-        }
+        callbacks.delete(callback);
 
-        if (callbacks.length === 0) {
-            delete this._events[name];
+        if (callbacks.size === 0) {
+            this._events.delete(name);
         }
     }
 }
